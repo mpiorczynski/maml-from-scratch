@@ -1,27 +1,9 @@
-<style>
-  /* Three image containers (use 25% for four, and 50% for two, etc) */
-.column {
-  float: left;
-  width: 40%;
-  padding: 5px;
-}
-
-/* Clear floats after image containers */
-.row::after {
-  content: "";
-  clear: both;
-  display: table;
-}
-</style>
-<div class="row">
-  <div class="column">
-    <img src="assets/maml-teaser.png" width="100%"/>
-  </div>
-  <div class="column">
-    <img src="assets/maml-algorithm.png" width="72.5%"/>
-  </div>
-</div>
-
+<table>
+  <tr>
+    <td><img src="assets/maml-teaser.png" width="100%"/></td>
+    <td><img src="assets/maml-algorithm.png" width="78%"/></td>
+  </tr>
+</table>
 
 ## Install
 ```bash
