@@ -90,16 +90,6 @@ def setup_metrics(args):
     return metrics
 
 
-LOSS_NAME_MAP = {
-    "ce": nn.CrossEntropyLoss,
-    "bcewl": nn.BCEWithLogitsLoss,
-    "bce": nn.BCELoss,
-    "nll": nn.NLLLoss,
-    "mse": nn.MSELoss,
-    "mae": nn.L1Loss,
-    "huber": nn.HuberLoss,
-}
-
 OPTIMIZERS = {
     "sgd": optim.SGD,
     "adam": optim.AdamW,
