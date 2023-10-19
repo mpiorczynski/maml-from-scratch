@@ -22,11 +22,25 @@ Stronly inspired by `higher` package MAML [example](https://github.com/facebookr
   --task-name 'sinusoid' \
   --k-shot 10 --k-query 10 \
   --meta-batch-size 16 --num-epochs 10 \
-  --metch-optimizer 'adam' \
+  --meta-optimizer 'adam' --meta-learning-rate 1e-3 \
   --inner-steps 1 --inner-learning-rate 0.01 \
   --seed 42 \
   --use-wandb \
-  --log-interval 100 
+  --log-interval 100 \
+  --run-name 'sinusoid_10-shot_steps=1'
+```
+
+```
+./run.sh maml.py \
+  --task-name 'omniglot' \
+  --n-way 20 --k-shot 5 --k-query 5 \
+  --meta-batch-size 16 --num-epochs 10 \
+  --meta-optimizer 'adam' --meta-learning-rate 1e-3 \
+  --inner-steps 5 --inner-learning-rate 0.1 \
+  --seed 42 \
+  --use-wandb \
+  --log-interval 100 \
+  --run-name 'omniglot_20-way_5-shot_steps=5'
 ```
 
 ## Citations
