@@ -31,7 +31,7 @@ class SinusoidNShot:
         x_spt, y_spt = self.sample_sinusoid(amplitude, phase, self.k_shot)
         x_qry, y_qry = self.sample_sinusoid(amplitude, phase, self.k_query)
         x_spt, y_spt, x_qry, y_qry = [
-                torch.from_numpy(z).to(self.device) for z in
+                torch.from_numpy(z.astype(np.float32)).unsqueeze(-1).to(self.device) for z in
                 [x_spt, y_spt, x_qry, y_qry]
         ]
         return x_spt, y_spt, x_qry, y_qry

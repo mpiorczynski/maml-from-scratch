@@ -7,9 +7,10 @@ import time
 from pathlib import Path
 
 import higher
+import numpy as np
 import torch
-import wandb
 
+import wandb
 from common import OPTIMIZERS, setup_data, setup_files_and_logging, setup_loss, setup_metrics, setup_model
 from utils import save_checkpoint, set_seed, setup_device
 
@@ -47,6 +48,7 @@ def main():
     metrics = setup_metrics(args)
 
     start_time = time.time()
+    logging.info(f"Starting training for {args.num_epochs} epochs")
     for epoch in range(args.num_epochs):
         meta_train_loop(model, dataset, loss_fn, meta_optimizer, metrics, epoch, args)
         meta_test_loop(model, dataset, loss_fn, epoch, metrics, args)
@@ -73,9 +75,9 @@ def inner_loop(model, dataset, loss_fn, steps, step_size, metrics, mode="train")
 
             qry_output = fmodel(x_qry[i])
             qry_loss = loss_fn(qry_output, y_qry[i])
-            qry_losses.append(qry_loss.detach())
+            qry_losses.append(qry_loss.detach().cpu())
             for metric_name, metric_fn in metrics.items():
-                qry_metrics[metric_name].append(metric_fn(qry_output, y_qry[i]))
+                qry_metrics[metric_name].append(metric_fn(qry_output.detach().cpu(), y_qry[i].cpu()))
 
             # Update the model's meta-parameters to optimize the query losses across all of the tasks sampled in this batch.
             # This unrolls through the gradient steps.
@@ -95,9 +97,9 @@ def meta_train_loop(model, dataset, loss_fn, meta_optimizer, metrics, epoch, arg
         qry_losses, qry_metrics = inner_loop(
             model, dataset, loss_fn, args.inner_steps, args.inner_learning_rate, metrics, "train"
         )
-        qry_batch_loss = sum(qry_losses) / len(qry_losses)
+        qry_batch_loss = np.mean(qry_losses)
         qry_batch_metrics = {
-            metric_name: sum(metric_values) / len(metric_values) for metric_name, metric_values in qry_metrics.items()
+            metric_name: np.mean(metric_values) for metric_name, metric_values in qry_metrics.items()
         }
         meta_optimizer.step()
         i = epoch + float(batch_idx / n_iter)
@@ -110,11 +112,8 @@ def meta_train_loop(model, dataset, loss_fn, meta_optimizer, metrics, epoch, arg
         if args.use_wandb:
             wandb.log(
                 {
-                    "epoch": i,
-                    "loss": qry_batch_loss,
-                    "mode": "train",
-                    "time": time.time(),
-                    **{metric: value for metric, value in qry_batch_metrics.items()},
+                    "train_loss": qry_batch_loss,
+                    **{f"train_{metric}": value for metric, value in qry_batch_metrics.items()},
                 }
             )
 
@@ -126,16 +125,16 @@ def meta_test_loop(model, dataset, loss_fn, epoch, metrics, args):
     qry_losses = []
     qry_metrics = {metric_name: [] for metric_name in metrics.keys()}
     for batch_idx in range(n_iter):
-        qry_batch_losses, qry_batch_losses = inner_loop(
+        qry_batch_losses, qry_batch_metrics = inner_loop(
             model, dataset, loss_fn, args.inner_steps, args.inner_learning_rate, metrics, "test"
         )
         qry_losses.append(qry_batch_losses)
-        for metric_name, metric_values in qry_batch_losses.items():
+        for metric_name, metric_values in qry_batch_metrics.items():
             qry_metrics[metric_name].append(metric_values)
 
-    qry_loss = torch.cat(qry_losses).mean().item()
+    qry_loss = torch.Tensor(qry_losses).flatten().mean().item()
     qry_metrics = {
-        metric_name: torch.cat(metric_values).mean().item() for metric_name, metric_values in qry_metrics.items()
+        metric_name: torch.Tensor(metric_values).flatten().mean().item() for metric_name, metric_values in qry_metrics.items()
     }
     loggining_str = f"[Epoch {epoch+1:.2f}] Test Loss: {qry_loss:.2f}"
     for metric, value in qry_metrics.items():
@@ -144,12 +143,8 @@ def meta_test_loop(model, dataset, loss_fn, epoch, metrics, args):
     if args.use_wandb:
         wandb.log(
             {
-                "epoch": epoch,
-                "loss": qry_loss,
-                "acc": 0,
-                "mode": "test",
-                "time": time.time(),
-                **{metric: value for metric, value in qry_metrics.items()},
+                "test_loss": qry_loss,
+                **{f"test_{metric}": value for metric, value in qry_metrics.items()},
             }
         )
 
