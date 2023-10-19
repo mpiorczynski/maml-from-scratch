@@ -4,11 +4,12 @@ import os
 import torch.nn as nn
 import torch.optim as optim
 import wandb
-from sklearn.metrics import accuracy_score, mean_squared_error
+from sklearn.metrics import mean_squared_error
 
 from architectures import get_omniglot_model, get_sinusoid_model
 from datasets.omniglot import OmniglotNShot
 from datasets.sinusoid import SinusoidNShot
+from utils import accuracy_score_from_logits
 
 
 def setup_data(args, device):
@@ -68,17 +69,17 @@ def setup_files_and_logging(args):
     )
     # log config
     if args.use_wandb:
+        wandb.login()
         entity = os.environ["WANDB_ENTITY"]
         project = os.environ["WANDB_PROJECT"]
-        wandb.init(entity=entity, project=project, config=args, dir=str(run_dir.resolve()))
-        wandb.run.log_code(".", include_fn=lambda path: path.endswith(".py"))
+        wandb.init(entity=entity, project=project, config=args, name=args.run_name, dir=str(run_dir.resolve()))
     logging.info("Configured files and logging")
 
 
 def setup_metrics(args):
     if args.task_name == "omniglot":
         metrics = {
-            "acc": accuracy_score,
+            "acc": accuracy_score_from_logits,
         }
     elif args.task_name == "sinusoid":
         metrics = {

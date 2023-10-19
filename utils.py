@@ -29,3 +29,7 @@ def setup_device():
 
 def save_checkpoint(model, save_path):
     torch.save(model.state_dict(), save_path)
+    logging.info(f"Saved checkpoint to {save_path}")
+
+def accuracy_score_from_logits(y_pred, y_true):
+    return (y_pred.argmax(dim=1) == y_true).float().mean().item()
